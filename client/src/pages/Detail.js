@@ -4,9 +4,10 @@ import { useQuery } from '@apollo/react-hooks';
 import { useStoreContext } from "../utils/GlobalState";
 import { UPDATE_PRODUCTS } from "../utils/actions";
 import { QUERY_PRODUCTS } from "../utils/queries";
-import spinner from '../assets/spinner.gif'
+import Cart from '../components/Cart';
+import spinner from '../assets/spinner.gif';
 
-function Detail() { 
+function Detail() {
   const [state, dispatch] = useStoreContext();
   const { id } = useParams();
 
@@ -14,7 +15,7 @@ function Detail() {
 
   const { loading, data } = useQuery(QUERY_PRODUCTS);
 
-  const {products} = state;
+  const { products } = state;
 
   // checks if data in our global state product array
   useEffect(() => {
@@ -63,6 +64,7 @@ function Detail() {
       {
         loading ? <img src={spinner} alt="loading" /> : null
       }
+      <Cart />
     </>
   );
 };
