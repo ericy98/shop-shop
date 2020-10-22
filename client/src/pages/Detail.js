@@ -14,103 +14,110 @@ import spinner from '../assets/spinner.gif';
 import { idbPromise } from '../utils/helpers';
 
 function Detail() {
-    const [state, dispatch] = useStoreContext();
-    const { id } = useParams();
+  const [state, dispatch] = useStoreContext();
+  const { id } = useParams();
 
-    const [currentProduct, setCurrentProduct] = useState({})
+  const [currentProduct, setCurrentProduct] = useState({})
 
-    const { loading, data } = useQuery(QUERY_PRODUCTS);
+  const { loading, data } = useQuery(QUERY_PRODUCTS);
 
-    const { products, cart } = state;
+  const { products, cart } = state;
 
-    // checks if data in our global state product array
-    useEffect(() => {
-      if (products.length) {
-        setCurrentProduct(products.find(product => product._id === id));
-      } else if (data) {
+  // checks if data in our global state product array
+  useEffect(() => {
+    if (products.length) {
+      setCurrentProduct(products.find(product => product._id === id));
+    } else if (data) {
+      dispatch({
+        type: UPDATE_PRODUCTS,
+        products: data.products
+      });
+
+      data.products.forEach((product) => {
+        idbPromise('products', 'put', product);
+      });
+    } else if (!loading) {
+      idbPromise('products', 'get').then((indexedProducts) => {
         dispatch({
           type: UPDATE_PRODUCTS,
-          products: data.products
+          products: indexedProducts
         });
-        
-        data.products.forEach((product) => {
-          idbPromise('products', 'put', product);
-        });
-      } else if (!loading) {
-        idbPromise('products', 'get').then((indexedProducts) => {
-          dispatch({
-            type: UPDATE_PRODUCTS,
-            products: indexedProducts
-          });
-        });
-      }
-    }, [products, data, loading, dispatch, id]);
-
-    const addToCart = () => {
-      const itemInCart = cart.find((cartItem) => cartItem._id === id);
-
-      if (itemInCart) {
-        dispatch({
-          type: UPDATE_CART_QUANTITY,
-          _id: id,
-          purchaseQuantity: parseInt(itemInCart.purchaseQuantity) + 1
-        });
-      } else {
-        dispatch({
-          type: ADD_TO_CART,
-          product: { ...currentProduct, purchaseQuantity: 1 }
-        });
-      }
-    };
-
-    const removeFromCart = () => {
-      dispatch({
-        type: REMOVE_FROM_CART,
-        _id: currentProduct._id
       });
     }
+  }, [products, data, loading, dispatch, id]);
 
-    return (
-      <>
-        {currentProduct ? (
-          <div className="container my-1">
-            <Link to="/">
-              ← Back to Products
+  const addToCart = () => {
+    const itemInCart = cart.find((cartItem) => cartItem._id === id);
+
+    if (itemInCart) {
+      dispatch({
+        type: UPDATE_CART_QUANTITY,
+        _id: id,
+        purchaseQuantity: parseInt(itemInCart.purchaseQuantity) + 1
+      });
+      idbPromise('cart', 'put', {
+        ...itemInCart,
+        purchaseQuantity: parseInt(itemInCart.purchaseQuantity) + 1
+      });
+    } else {
+      dispatch({
+        type: ADD_TO_CART,
+        product: { ...currentProduct, purchaseQuantity: 1 }
+      });
+      idbPromise('cart', 'put', { ...currentProduct, purchaseQuantity: 1 });
+    }
+  }
+
+  const removeFromCart = () => {
+    dispatch({
+      type: REMOVE_FROM_CART,
+      _id: currentProduct._id
+    });
+
+    idbPromise('cart', 'delete', { ...currentProduct });
+  }
+
+  return (
+    <>
+      {currentProduct ? (
+        <div className="container my-1">
+          <Link to="/">
+            ← Back to Products
           </Link>
 
-            <h2>{currentProduct.name}</h2>
+          <h2>{currentProduct.name}</h2>
 
-            <p>
-              {currentProduct.description}
-            </p>
+          <p>
+            {currentProduct.description}
+          </p>
 
-            <p>
-              <strong>Price:</strong>
+          <p>
+            <strong>Price:</strong>
             ${currentProduct.price}
-              {" "}
-              <button onClick={addToCart}>
-                Add to Cart
+            {" "}
+            <button onClick={addToCart}>
+              Add to Cart
             </button>
-              <button
-                disabled={!cart.find(p => p._id === currentProduct._id)}
-                onClick={removeFromCart}
-              >
-                Remove from Cart
+            <button
+              disabled={!cart.find(p => p._id === currentProduct._id)}
+              onClick={removeFromCart}
+            >
+              Remove from Cart
             </button>
-            </p>
+          </p>
 
-            <img
-              src={`/images/${currentProduct.image}`}
-              alt={currentProduct.name}
-            />
-          </div>
-        ) : null}
-        {
-          loading ? <img src={spinner} alt="loading" /> : null
-        }
-        <Cart />
-      </>
-    );
-  };
+          <img
+            src={`/images/${currentProduct.image}`}
+            alt={currentProduct.name}
+          />
+        </div>
+      ) : null}
+      {
+        loading ? <img src={spinner} alt="loading" /> : null
+      }
+      <Cart />
+    </>
+  );
+};
 
 export default Detail;
